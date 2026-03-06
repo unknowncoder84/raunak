@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 
@@ -55,7 +55,7 @@ export function NotificationProvider({ children, user }) {
     checkForNewNotifications();
 
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, checkForNewNotifications]);
 
   const checkForNewNotifications = () => {
     if (!user) return;

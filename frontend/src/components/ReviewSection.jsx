@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Star, User, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,16 +13,16 @@ export default function ReviewSection({ productId, user, canReview = false }) {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadReviews();
-  }, [productId]);
-
-  const loadReviews = async () => {
+  const loadReviews = useCallback(async () => {
     setLoading(true);
     const data = await supabaseService.getProductReviews(productId);
     setReviews(data);
     setLoading(false);
-  };
+  }, [productId]);
+
+  useEffect(() => {
+    loadReviews();
+  }, [loadReviews]);
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, ShoppingBag, TrendingUp, Clock, CheckCircle, Truck } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -19,11 +19,7 @@ export default function BuyerDashboard({ user, isDemoMode }) {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadBuyerData();
-  }, []);
-
-  const loadBuyerData = async () => {
+  const loadBuyerData = useCallback(async () => {
     setLoading(true);
     const orderData = await supabaseService.getUserOrders(user.id);
     setOrders(orderData.slice(0, 5)); // Latest 5 orders
@@ -36,7 +32,11 @@ export default function BuyerDashboard({ user, isDemoMode }) {
     
     setStats({ totalOrders, activeOrders, completedOrders, totalSpent });
     setLoading(false);
-  };
+  }, [user.id]);
+
+  useEffect(() => {
+    loadBuyerData();
+  }, [loadBuyerData]);
 
   if (loading) {
     return (

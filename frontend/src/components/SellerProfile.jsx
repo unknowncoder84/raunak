@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { X, Star, CheckCircle, TrendingUp, Package, Award } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -13,11 +13,7 @@ export default function SellerProfile({ sellerId, sellerName, onClose }) {
   const [sellerData, setSellerData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadSellerProfile();
-  }, [sellerId]);
-
-  const loadSellerProfile = async () => {
+  const loadSellerProfile = useCallback(async () => {
     setLoading(true);
     
     try {
@@ -57,7 +53,11 @@ export default function SellerProfile({ sellerId, sellerName, onClose }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sellerId, sellerName]);
+
+  useEffect(() => {
+    loadSellerProfile();
+  }, [loadSellerProfile]);
 
   if (loading) {
     return (
