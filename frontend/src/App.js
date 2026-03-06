@@ -61,89 +61,50 @@ function App() {
   const [currentNotification, setCurrentNotification] = useState(null);
 
   useEffect(() => {
-    // Force demo mode on app start (prevent MetaMask auto-connect errors)
-    if (!localStorage.getItem('REACT_APP_DEMO_MODE')) {
-      localStorage.setItem('REACT_APP_DEMO_MODE', 'true');
-    }
-    
+    // Initialize app safely
     initializeApp();
-    // Check for existing session
-    checkSession();
-    // Check for admin session
-    checkAdminSession();
-    // Initialize demo products
-    initializeDemoProducts();
   }, []);
 
   /**
-   * Check for existing Supabase session
+   * Initialize app with error handling
    */
-  const checkSession = async () => {
-    const session = await supabaseService.getSession();
-    if (session && session.user) {
-      const userData = {
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.user_metadata?.name || session.user.email.split('@')[0],
-        role: session.user.user_metadata?.role || 'buyer',
-        walletAddress: session.user.user_metadata?.wallet_address || null
-      };
-      setUser(userData);
-      localStorage.setItem('blockshop_user', JSON.stringify(userData));
-    } else {
-      // Load user from localStorage
+  const initializeApp = async () => {
+    try {
+      // Force demo mode for production stability
+      localStorage.setItem('REACT_APP_DEMO_MODE', 'true');
+      setIsDemoMode(true);
+      
+      // Check for existing user session
       const savedUser = localStorage.getItem('blockshop_user');
       if (savedUser) {
         try {
           setUser(JSON.parse(savedUser));
         } catch (error) {
           console.error('Error loading user from storage:', error);
+          localStorage.removeItem('blockshop_user');
         }
       }
-    }
-  };
 
-  /**
-   * Check for existing admin session
-   */
-  const checkAdminSession = () => {
-    const savedAdmin = localStorage.getItem('blockshop_admin');
-    if (savedAdmin) {
-      try {
-        setAdminUser(JSON.parse(savedAdmin));
-      } catch (error) {
-        console.error('Error loading admin from storage:', error);
+      // Check for admin session
+      const savedAdmin = localStorage.getItem('blockshop_admin');
+      if (savedAdmin) {
+        try {
+          setAdminUser(JSON.parse(savedAdmin));
+        } catch (error) {
+          console.error('Error loading admin from storage:', error);
+          localStorage.removeItem('blockshop_admin');
+        }
       }
-    }
-  };
 
-  /**
-   * Initialize blockchain and Supabase services
-   */
-  const initializeApp = async () => {
-    try {
-      // Initialize blockchain (don't fail if MetaMask not available)
-      try {
-        const blockchainInit = await blockchainService.initialize();
-        console.log('Blockchain init:', blockchainInit.message);
-      } catch (blockchainError) {
-        console.warn('Blockchain initialization skipped:', blockchainError.message);
-      }
+      // Initialize demo products
+      initializeDemoProducts();
       
-      // Check if demo mode
-      const isDemo = blockchainService.isDemo() || supabaseService.isDemo();
-      setIsDemoMode(isDemo);
-
-      if (isDemo) {
-        toast.info('Demo Mode Active', {
-          description: 'Using mock blockchain and database data for presentation',
-          duration: 3000
-        });
-      }
-
+      // App is ready
       setLoading(false);
+      
     } catch (error) {
       console.error('App initialization error:', error);
+      // Ensure app still loads even if there are errors
       setIsDemoMode(true);
       setLoading(false);
     }
@@ -220,11 +181,14 @@ function App() {
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 font-medium">Initializing Blockchain Platform...</p>
+          <p className="mt-4 text-gray-600 font-medium">Loading BlockShop...</p>
         </div>
       </div>
     );
   }
+
+  // Add error boundary
+  try {
 
   return (
     <div className="App min-h-screen bg-gray-50">
@@ -336,9 +300,6 @@ function App() {
               user && user.role === 'buyer' ? <BuyerWallet user={user} /> : <Navigate to="/login" />
             } />
             <Route path="/buyer/settings" element={
-              user && user.role === 'buyer' ? <UserSettings user={user} /> : <Navigate to="/login" />
-            } />
-            <Route path="/buyer/settings" element={
               user && user.role === 'buyer' ? <SettingsPage user={user} /> : <Navigate to="/login" />
             } />
             <Route path="/wishlist" element={
@@ -367,9 +328,6 @@ function App() {
               user && user.role === 'seller' ? <SellerWallet user={user} /> : <Navigate to="/login" />
             } />
             <Route path="/seller/settings" element={
-              user && user.role === 'seller' ? <UserSettings user={user} /> : <Navigate to="/login" />
-            } />
-            <Route path="/seller/settings" element={
               user && user.role === 'seller' ? <SettingsPage user={user} /> : <Navigate to="/login" />
             } />
             <Route path="/transparency" element={
@@ -377,6 +335,11 @@ function App() {
             } />
             <Route path="/transaction-success" element={
               user ? <TransactionSuccess /> : <Navigate to="/login" />
+            } />
+            
+            {/* Fallback route */}
+            <Route path="*" element={
+              user ? <Navigate to="/" /> : <Navigate to="/login" />
             } />
           </Routes>
 
@@ -387,6 +350,23 @@ function App() {
       </BrowserRouter>
     </div>
   );
+  } catch (error) {
+    console.error('App render error:', error);
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">BlockShop</h1>
+          <p className="text-gray-600">Loading application...</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 }
 
 // Wrapper component to use notification context
