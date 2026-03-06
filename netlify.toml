@@ -1,8 +1,8 @@
 # Netlify Configuration for BlockShop Marketplace
 
 [build]
-  # Build command
-  command = "cd frontend && npm install && npm run build"
+  # Build command with legacy peer deps to handle React 19 compatibility
+  command = "cd frontend && npm install --legacy-peer-deps && npm run build"
   
   # Directory with the build output
   publish = "frontend/build"
