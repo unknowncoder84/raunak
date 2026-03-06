@@ -14,50 +14,7 @@ export function NotificationProvider({ children, user }) {
   const [showNotificationModal, setShowNotificationModal] = useState(false);
 
   // Check for new notifications from localStorage (simulates real-time updates)
-  useEffect(() => {
-    if (!user) return;
-
-    // CLEANUP: Clear any old error notifications on mount
-    const cleanupOldErrorNotifications = () => {
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (key.includes('notifications')) {
-          try {
-            const data = localStorage.getItem(key);
-            if (data) {
-              const parsed = JSON.parse(data);
-              // Remove if it's an error notification
-              if (parsed.type?.includes('error') || 
-                  parsed.type?.includes('failed') ||
-                  parsed.title?.includes('failed') ||
-                  parsed.title?.includes('Failed')) {
-                localStorage.removeItem(key);
-                console.log('🧹 Cleaned up old error notification:', key);
-              }
-            }
-          } catch (e) {
-            // Remove corrupted data
-            localStorage.removeItem(key);
-          }
-        }
-      });
-    };
-
-    // Clean up on mount
-    cleanupOldErrorNotifications();
-
-    // Check for notifications every 2 seconds (works for both buyers and sellers)
-    const interval = setInterval(() => {
-      checkForNewNotifications();
-    }, 2000);
-
-    // Check immediately on mount
-    checkForNewNotifications();
-
-    return () => clearInterval(interval);
-  }, [user, checkForNewNotifications]);
-
-  const checkForNewNotifications = () => {
+  const checkForNewNotifications = useCallback(() => {
     if (!user) return;
 
     // Check localStorage for pending notifications (works for both buyers and sellers)
@@ -113,7 +70,51 @@ export function NotificationProvider({ children, user }) {
         localStorage.removeItem(notificationKey);
       }
     }
-  };
+  }, [user, notifications]);
+
+  // useEffect to set up polling and cleanup
+  useEffect(() => {
+    if (!user) return;
+
+    // CLEANUP: Clear any old error notifications on mount
+    const cleanupOldErrorNotifications = () => {
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.includes('notifications')) {
+          try {
+            const data = localStorage.getItem(key);
+            if (data) {
+              const parsed = JSON.parse(data);
+              // Remove if it's an error notification
+              if (parsed.type?.includes('error') || 
+                  parsed.type?.includes('failed') ||
+                  parsed.title?.includes('failed') ||
+                  parsed.title?.includes('Failed')) {
+                localStorage.removeItem(key);
+                console.log('🧹 Cleaned up old error notification:', key);
+              }
+            }
+          } catch (e) {
+            // Remove corrupted data
+            localStorage.removeItem(key);
+          }
+        }
+      });
+    };
+
+    // Clean up on mount
+    cleanupOldErrorNotifications();
+
+    // Check for notifications every 2 seconds (works for both buyers and sellers)
+    const interval = setInterval(() => {
+      checkForNewNotifications();
+    }, 2000);
+
+    // Check immediately on mount
+    checkForNewNotifications();
+
+    return () => clearInterval(interval);
+  }, [user, checkForNewNotifications]);
 
   const addNotification = (notification) => {
     const newNotification = {
