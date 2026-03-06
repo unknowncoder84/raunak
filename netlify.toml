@@ -1,8 +1,8 @@
 # Netlify Configuration for BlockShop Marketplace
 
 [build]
-  # Build command with legacy peer deps and CI=false to ignore warnings
-  command = "cd frontend && CI=false npm install --legacy-peer-deps && CI=false npm run build"
+  # Build command with ESLint disabled to prevent plugin conflicts
+  command = "cd frontend && DISABLE_ESLINT_PLUGIN=true CI=false npm install --legacy-peer-deps && DISABLE_ESLINT_PLUGIN=true CI=false npm run build"
   
   # Directory with the build output
   publish = "frontend/build"
@@ -21,6 +21,9 @@
   
   # Disable treating warnings as errors in CI
   CI = "false"
+  
+  # Disable ESLint plugin to prevent conflicts
+  DISABLE_ESLINT_PLUGIN = "true"
 
 # Redirect rules for React Router
 [[redirects]]
