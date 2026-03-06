@@ -1,8 +1,8 @@
 # Netlify Configuration for BlockShop Marketplace
 
 [build]
-  # Build command with legacy peer deps to handle React 19 compatibility
-  command = "cd frontend && npm install --legacy-peer-deps && npm run build"
+  # Build command with legacy peer deps and CI=false to ignore warnings
+  command = "cd frontend && CI=false npm install --legacy-peer-deps && CI=false npm run build"
   
   # Directory with the build output
   publish = "frontend/build"
@@ -11,13 +11,16 @@
   base = "/"
 
 [build.environment]
-  # Node version
-  NODE_VERSION = "18"
+  # Node version - upgrade to 20 for Supabase compatibility
+  NODE_VERSION = "20"
   
   # React environment
   REACT_APP_DEMO_MODE = "true"
   REACT_APP_SUPABASE_URL = "https://ddytpnlvtjcymlqekbda.supabase.co"
   REACT_APP_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeXRwbmx2dGpjeW1scWVrYmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTk4NjYsImV4cCI6MjA4Nzg3NTg2Nn0.abxicjNc-n3oWzsljI-bbrc3d9mTcEb2Aa_cqewEi1I"
+  
+  # Disable treating warnings as errors in CI
+  CI = "false"
 
 # Redirect rules for React Router
 [[redirects]]

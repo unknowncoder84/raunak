@@ -1,6 +1,6 @@
 [build]
   base = "frontend"
-  command = "npm install --legacy-peer-deps && npm run build"
+  command = "CI=false npm install --legacy-peer-deps && CI=false npm run build"
   publish = "build"
 
 [[redirects]]
@@ -9,7 +9,8 @@
   status = 200
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
   REACT_APP_DEMO_MODE = "true"
   REACT_APP_SUPABASE_URL = "https://ddytpnlvtjcymlqekbda.supabase.co"
   REACT_APP_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeXRwbmx2dGpjeW1scWVrYmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTk4NjYsImV4cCI6MjA4Nzg3NTg2Nn0.abxicjNc-n3oWzsljI-bbrc3d9mTcEb2Aa_cqewEi1I"
+  CI = "false"
