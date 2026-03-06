@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Clean Duplicate Orders</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { color: #667eea; text-align: center; margin-bottom: 30px; }
+        .button {
+            background: #667eea;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+            display: inline-block;
+            width: 100%;
+        }
+        .button:hover { background: #5568d3; }
+        .button.danger { background: #e74c3c; }
+        .button.danger:hover { background: #c0392b; }
+        #output {
+            background: #1e1e1e;
+            color: #0f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            min-height: 100px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            color: #856404;
+        }
+        .success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Clean Duplicate Orders</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Warning:</strong> This will remove duplicate orders from your localStorage. 
+            Make sure you understand what this does before clicking!
+        </div>
+
+        <button class="button" onclick="analyzeDuplicates()">
+            1. Analyze Duplicates (Safe - Just Check)
+        </button>
+
+        <button class="button danger" onclick="removeDuplicates()">
+            2. Remove Duplicates (This Will Delete!)
+        </button>
+
+        <button class="button" onclick="viewAllOrders()">
+            3. View All Orders
+        </button>
+
+        <div id="output">Click a button above to start...</div>
+
+        <div class="success" id="successMessage" style="display: none;">
+            ✅ Duplicates removed successfully! Refresh your app to see the changes.
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                error: '#f00',
+                success: '#0f0',
+                warning: '#ff0',
+                info: '#0ff'
+            };
+            const color = colors[type] || colors.info;
+            output.innerHTML += `<span style="color: ${color}">[${timestamp}] ${message}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clear() {
+            document.getElementById('output').innerHTML = '';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        function analyzeDuplicates() {
+            clear();
+            log('='.repeat(60), 'info');
+            log('ANALYZING DUPLICATE ORDERS', 'info');
+            log('='.repeat(60), 'info');
+            
+            const orders = JSON.parse(localStorage.getItem('w3mart_orders') || '[]');
+            log(`\nTotal orders in storage: ${orders.length}`, 'info');
+            
+            if (orders.length === 0) {
+                log('\n❌ No orders found in storage', 'error');
+                return;
+            }
+
+            // Find duplicates based on buyer_email, product_name, and similar created_at
+            const duplicateGroups = {};
+            
+            orders.forEach((order, index) => {
+                const key = `${order.buyer_email}-${order.product_name}`;
+                if (!duplicateGroups[key]) {
+                    duplicateGroups[key] = [];
+                }
+                duplicateGroups[key].push({ ...order, originalIndex: index });
+            });
+
+            // Find groups with duplicates
+            let totalDuplicates = 0;
+            let duplicateCount = 0;
+
+            Object.keys(duplicateGroups).forEach(key => {
+                const group = duplicateGroups[key];
+                if (group.length > 1) {
+                    // Check if created_at is within 5 seconds
+                    const times = group.map(o => new Date(o.created_at).getTime());
+                    const maxDiff = Math.max(...times) - Math.min(...times);
+                    
+                    if (maxDiff < 5000) { // Within 5 seconds
+                        duplicateCount++;
+                        totalDuplicates += group.length - 1;
+                        
+                        log(`\n🔍 Duplicate Group ${duplicateCount}:`, 'warning');
+                        log(`   Product: ${group[0].product_name}`, 'warning');
+                        log(`   Buyer: ${group[0].buyer_email}`, 'warning');
+                        log(`   Count: ${group.length} orders`, 'warning');
+                        
+                        group.forEach((order, i) => {
+                            log(`   ${i + 1}. Order ID: ${order.id.substring(0, 20)}...`, 'warning');
+                            log(`      Created: ${new Date(order.created_at).toLocaleString()}`, 'warning');
+                        });
+                    }
+                }
+            });
+
+            log('\n' + '='.repeat(60), 'info');
+            if (totalDuplicates > 0) {
+                log(`\n⚠️  FOUND ${totalDuplicates} DUPLICATE ORDERS`, 'error');
+                log(`   In ${duplicateCount} duplicate groups`, 'error');
+                log(`\n   Click "Remove Duplicates" to clean them up`, 'warning');
+            } else {
+                log('\n✅ NO DUPLICATES FOUND!', 'success');
+                log('   Your orders are clean!', 'success');
+            }
+            log('='.repeat(60), 'info');
+        }
+
+        function removeDuplicates() {
+            if (!confirm('⚠️  Are you sure you want to remove duplicate orders?\n\nThis will keep the newest order from each duplicate group and delete the rest.')) {
+                return;
+            }
+
+            clear();
+            log('='.repeat(60), 'info');
+            log('REMOVING DUPLICATE ORDERS', 'info');
+            log('='.repeat(60), 'info');
+            
+            const orders = JSON.parse(localStorage.getItem('w3mart_orders') || '[]');
+            log(`\nOriginal order count: ${orders.length}`, 'info');
+            
+            if (orders.length === 0) {
+                log('\n❌ No orders found in storage', 'error');
+                return;
+            }
+
+            // Group orders by buyer_email and product_name
+            const groups = {};
+            
+            orders.forEach(order => {
+                const key = `${order.buyer_email}-${order.product_name}`;
+                if (!groups[key]) {
+                    groups[key] = [];
+                }
+                groups[key].push(order);
+            });
+
+            // Keep only the newest order from each group (if created within 5 seconds)
+            const cleanedOrders = [];
+            let removedCount = 0;
+
+            Object.keys(groups).forEach(key => {
+                const group = groups[key];
+                
+                if (group.length > 1) {
+                    // Check if they're duplicates (created within 5 seconds)
+                    const times = group.map(o => new Date(o.created_at).getTime());
+                    const maxDiff = Math.max(...times) - Math.min(...times);
+                    
+                    if (maxDiff < 5000) {
+                        // Sort by created_at and keep the newest
+                        group.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                        cleanedOrders.push(group[0]); // Keep newest
+                        removedCount += group.length - 1;
+                        
+                        log(`\n✅ Cleaned: ${group[0].product_name}`, 'success');
+                        log(`   Kept: ${new Date(group[0].created_at).toLocaleString()}`, 'success');
+                        log(`   Removed: ${group.length - 1} duplicate(s)`, 'success');
+                    } else {
+                        // Not duplicates, keep all
+                        cleanedOrders.push(...group);
+                    }
+                } else {
+                    // No duplicates, keep it
+                    cleanedOrders.push(group[0]);
+                }
+            });
+
+            // Save cleaned orders
+            localStorage.setItem('w3mart_orders', JSON.stringify(cleanedOrders));
+            
+            log('\n' + '='.repeat(60), 'info');
+            log(`\n✅ CLEANUP COMPLETE!`, 'success');
+            log(`   Original orders: ${orders.length}`, 'info');
+            log(`   Cleaned orders: ${cleanedOrders.length}`, 'success');
+            log(`   Removed: ${removedCount} duplicates`, 'success');
+            log('\n   Refresh your app to see the changes!`, 'warning');
+            log('='.repeat(60), 'info');
+
+            document.getElementById('successMessage').style.display = 'block';
+        }
+
+        function viewAllOrders() {
+            clear();
+            const orders = JSON.parse(localStorage.getItem('w3mart_orders') || '[]');
+            
+            log('='.repeat(60), 'info');
+            log(`ALL ORDERS (${orders.length})`, 'info');
+            log('='.repeat(60), 'info');
+            
+            if (orders.length === 0) {
+                log('\n❌ NO ORDERS IN STORAGE', 'error');
+                return;
+            }
+            
+            orders.forEach((order, index) => {
+                log(`\n--- ORDER ${index + 1} ---`, 'success');
+                log(`Product: ${order.product_name}`);
+                log(`Buyer: ${order.buyer_email}`);
+                log(`Seller: ${order.seller_email}`);
+                log(`Status: ${order.status}`);
+                log(`Amount: ${order.amount} ETH`);
+                log(`Created: ${new Date(order.created_at).toLocaleString()}`);
+            });
+            
+            log('\n' + '='.repeat(60), 'info');
+        }
+
+        // Auto-analyze on load
+        window.onload = () => {
+            analyzeDuplicates();
+        };
+    </script>
+</body>
+</html>

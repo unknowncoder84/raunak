@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Duplicate Order Cleaner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2d3748;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        .stats {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+        .stat-label {
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .stat-value {
+            color: #667eea;
+            font-weight: bold;
+        }
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px;
+            min-width: 200px;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .button.danger {
+            background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);
+        }
+        .button.success {
+            background: linear-gradient(135deg, #68d391 0%, #48bb78 100%);
+        }
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .log {
+            background: #2d3748;
+            color: #68d391;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+        .actions {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .warning {
+            background: #fff5f5;
+            border-left: 5px solid #fc8181;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #f0fff4;
+            border-left: 5px solid #68d391;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Ultimate Duplicate Cleaner</h1>
+        <p class="subtitle">Advanced duplicate order detection and removal</p>
+
+        <div class="stats" id="stats">
+            <div class="stat-item">
+                <span class="stat-label">Total Orders:</span>
+                <span class="stat-value" id="totalOrders">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Unique Orders:</span>
+                <span class="stat-value" id="uniqueOrders">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Duplicate Orders:</span>
+                <span class="stat-value" id="duplicateOrders">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Buyers:</span>
+                <span class="stat-value" id="totalBuyers">0</span>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="button" onclick="analyzeOrders()">🔍 Analyze Orders</button>
+            <button class="button success" onclick="cleanDuplicates()">🧹 Clean Duplicates</button>
+            <button class="button danger" onclick="clearAllOrders()">🗑️ Clear All Orders</button>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Warning:</strong> This tool will permanently remove duplicate orders. 
+            Make sure to backup your data if needed.
+        </div>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let logElement = document.getElementById('log');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateStats() {
+            const orders = JSON.parse(localStorage.getItem('w3mart_orders') || '[]');
+            
+            // Calculate unique orders (by product + buyer + time)
+            const uniqueKeys = new Set();
+            const duplicates = [];
+            
+            orders.forEach(order => {
+                const key = `${order.product_id}-${order.buyer_email}-${order.quantity}-${Math.floor(new Date(order.created_at).getTime() / 1000)}`;
+                if (uniqueKeys.has(key)) {
+                    duplicates.push(order);
+                } else {
+                    uniqueKeys.add(key);
+                }
+            });
+
+            const buyers = [...new Set(orders.map(o => o.buyer_email))];
+
+            document.getElementById('totalOrders').textContent = orders.length;
+            document.getElementById('uniqueOrders').textContent = uniqueKeys.size;
+            document.getElementById('duplicateOrders').textContent = duplicates.length;
+            document.getElementById('totalBuyers').textContent = buyers.length;
+
+            return { orders, duplicates, buyers };
+        }
+
+        function analyzeOrders() {
+            log('🔍 Starting order analysis...');
+            
+            const { orders, duplicates, buyers } = updateStats();
+            
+            log(`📊 Analysis Results:`);
+            log(`   Total Orders: ${orders.length}`);
+            log(`   Unique Orders: ${orders.length - duplicates.length}`);
+            log(`   Duplicate Orders: ${duplicates.length}`);
+            log(`   Total Buyers: ${buyers.length}`);
+            
+            if (duplicates.length > 0) {
+                log(`\n🔍 Duplicate Details:`);
+                const duplicateGroups = {};
+                
+                duplicates.forEach(order => {
+                    const key = `${order.product_name} (${order.buyer_email})`;
+                    if (!duplicateGroups[key]) {
+                        duplicateGroups[key] = 0;
+                    }
+                    duplicateGroups[key]++;
+                });
+                
+                Object.entries(duplicateGroups).forEach(([key, count]) => {
+                    log(`   - ${key}: ${count} duplicates`);
+                });
+            } else {
+                log(`✅ No duplicates found!`);
+            }
+
+            // Check for orders created within 5 seconds of each other
+            log(`\n🕐 Checking for rapid orders (within 5 seconds)...`);
+            const rapidOrders = [];
+            
+            for (let i = 0; i < orders.length - 1; i++) {
+                for (let j = i + 1; j < orders.length; j++) {
+                    const order1 = orders[i];
+                    const order2 = orders[j];
+                    
+                    if (order1.buyer_email === order2.buyer_email &&
+                        order1.product_id === order2.product_id) {
+                        const timeDiff = Math.abs(new Date(order1.created_at) - new Date(order2.created_at));
+                        if (timeDiff < 5000) { // 5 seconds
+                            rapidOrders.push({ order1, order2, timeDiff });
+                        }
+                    }
+                }
+            }
+            
+            if (rapidOrders.length > 0) {
+                log(`⚠️ Found ${rapidOrders.length} rapid order pairs:`);
+                rapidOrders.forEach(({ order1, order2, timeDiff }) => {
+                    log(`   - ${order1.product_name}: ${timeDiff}ms apart`);
+                });
+            } else {
+                log(`✅ No rapid orders detected`);
+            }
+        }
+
+        function cleanDuplicates() {
+            if (!confirm('Are you sure you want to clean duplicate orders? This cannot be undone.')) {
+                return;
+            }
+
+            log('🧹 Starting duplicate cleanup...');
+            
+            const orders = JSON.parse(localStorage.getItem('w3mart_orders') || '[]');
+            const originalCount = orders.length;
+            
+            log(`📊 Original order count: ${originalCount}`);
+            
+            // Method 1: Remove exact duplicates (same product, buyer, quantity, within 5 seconds)
+            const seen = new Map();
+            const uniqueOrders = [];
+            let removedCount = 0;
+            
+            orders.forEach(order => {
+                const timeKey = Math.floor(new Date(order.created_at).getTime() / 5000); // 5-second buckets
+                const key = `${order.product_id}-${order.buyer_email}-${order.quantity}-${timeKey}`;
+                
+                if (seen.has(key)) {
+                    log(`🗑️ Removing duplicate: ${order.product_name} for ${order.buyer_email}`);
+                    removedCount++;
+                } else {
+                    seen.set(key, true);
+                    uniqueOrders.push(order);
+                }
+            });
+            
+            // Method 2: Remove orders with identical IDs (shouldn't happen but just in case)
+            const idsSeen = new Set();
+            const finalOrders = uniqueOrders.filter(order => {
+                if (idsSeen.has(order.id)) {
+                    log(`🗑️ Removing duplicate ID: ${order.id}`);
+                    removedCount++;
+                    return false;
+                }
+                idsSeen.add(order.id);
+                return true;
+            });
+            
+            // Save cleaned orders
+            localStorage.setItem('w3mart_orders', JSON.stringify(finalOrders));
+            
+            log(`✅ Cleanup complete!`);
+            log(`   Original orders: ${originalCount}`);
+            log(`   Cleaned orders: ${finalOrders.length}`);
+            log(`   Removed duplicates: ${removedCount}`);
+            
+            updateStats();
+            
+            if (removedCount > 0) {
+                alert(`✅ Cleanup complete!\nRemoved ${removedCount} duplicate orders.\nYou now have ${finalOrders.length} unique orders.`);
+            } else {
+                alert('✅ No duplicates found to remove!');
+            }
+        }
+
+        function clearAllOrders() {
+            if (!confirm('⚠️ WARNING: This will delete ALL orders permanently!\n\nAre you absolutely sure?')) {
+                return;
+            }
+            
+            if (!confirm('This is your final warning. ALL ORDER DATA WILL BE LOST.\n\nProceed?')) {
+                return;
+            }
+            
+            const orders = JSON.parse(localStorage.getItem('w3mart_orders') || '[]');
+            const count = orders.length;
+            
+            localStorage.removeItem('w3mart_orders');
+            
+            log(`🗑️ Cleared all orders (${count} orders deleted)`);
+            updateStats();
+            
+            alert(`🗑️ All ${count} orders have been permanently deleted.`);
+        }
+
+        // Initialize
+        window.onload = function() {
+            log('🚀 Ultimate Duplicate Cleaner initialized');
+            updateStats();
+            analyzeOrders();
+        };
+    </script>
+</body>
+</html>

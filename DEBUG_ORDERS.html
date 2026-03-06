@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Debug Orders - Check Everything</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #0f0;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #2d2d2d;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,255,0,0.3);
+        }
+        h1 { color: #0ff; text-align: center; margin-bottom: 30px; }
+        .section {
+            background: #1e1e1e;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #0f0;
+            border-radius: 5px;
+        }
+        .section h2 { color: #ff0; margin-top: 0; }
+        button {
+            background: #0f0;
+            color: #000;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+            font-family: 'Courier New', monospace;
+        }
+        button:hover { background: #0ff; transform: scale(1.05); }
+        #output {
+            background: #000;
+            color: #0f0;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            min-height: 200px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+        .warning { color: #ff0; }
+        .info { color: #0ff; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            border: 1px solid #0f0;
+            padding: 8px;
+            text-align: left;
+        }
+        th { background: #0f0; color: #000; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 ORDER SYSTEM DEBUGGER</h1>
+        
+        <div class="section">
+            <h2>1. Check Storage</h2>
+            <button onclick="checkStorage()">Check localStorage</button>
+            <button onclick="viewAllOrders()">View All Orders</button>
+            <button onclick="viewProducts()">View All Products</button>
+        </div>
+
+        <div class="section">
+            <h2>2. Create Test Order</h2>
+            <button onclick="createTestOrder('buyer1@test.com')">Create Order for buyer1@test.com</button>
+            <button onclick="createTestOrder('buyer2@test.com')">Create Order for buyer2@test.com</button>
+            <button onclick="createMultipleOrders()">Create 5 Test Orders</button>
+        </div>
+
+        <div class="section">
+            <h2>3. Query Orders</h2>
+            <button onclick="getBuyerOrders('buyer1@test.com')">Get buyer1 Orders</button>
+            <button onclick="getSellerOrders('Seller1@test.com')">Get Seller1 Orders</button>
+            <button onclick="getSellerOrders('seller1@test.com')">Get seller1 Orders (lowercase)</button>
+        </div>
+
+        <div class="section">
+            <h2>4. Fix Issues</h2>
+            <button onclick="fixOrderFormat()">Fix Order Format</button>
+            <button onclick="clearAllOrders()">Clear All Orders</button>
+            <button onclick="initializeDemoData()">Initialize Demo Data</button>
+        </div>
+
+        <div class="section">
+            <h2>📊 Output</h2>
+            <div id="output">Click a button above to start debugging...</div>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                error: 'error',
+                success: 'success',
+                warning: 'warning',
+                info: 'info'
+            };
+            output.innerHTML += `<span class="${colors[type]}">[${timestamp}] ${message}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clear() {
+            document.getElementById('output').innerHTML = '';
+        }
+
+        function checkStorage() {
+            clear();
+            log('='.repeat(60), 'info');
+            log('CHECKING LOCALSTORAGE', 'info');
+            log('='.repeat(60), 'info');
+            
+            const orders = JSON.parse(localStorage.getItem('w3mart_orders') || '[]');
+            const products = JSON.parse(localStorage.getItem('w3mart_seller_products') || '[]');
+            const cart = JSON.parse(localStorage.getItem('w3mart_cart') || '[]');
+            
+            log(`\n📦 ORDERS: ${orders.length}`, orders.length > 0 ? 'success' : 'warning');
+            log(`📦 PRODUCTS: ${products.length}`, products.length > 0 ? 'success' : 'warning');
+            log(`🛒 CART: ${cart.length}`, 'info');
+            
+            if (orders.length === 0) {
+                log('\n⚠️  NO ORDERS FOUND!', 'error');
+                log('This is why "My Orders" page is empty.', 'error');
+                log('Solution: Create a test order or place an order in the app.', 'warning');
+            } else {
+                log('\n✅ Orders exist in storage', 'success');
+            }
+            
+            if (products.length === 0) {
+                log('\n⚠️  NO PRODUCTS FOUND!', 'warning');
+                log('Products should be auto-initialized when you visit inventory page.', 'info');
+            }
+            
+            log('\n' + '='.repeat(60), 'info');
+        }
+
+        function viewAllOrders() {
+            clear();
+            const orders = JSON.parse(localStorage.getItem('w3mart_orders') || '[]');
+            
+            log('='.repeat(60), 'info');
+            log(`ALL ORDERS (${orders.length})`, 'info');
+            log('='.repeat(60), 'info');
+            
+            if (orders.length === 0) {
+                log('\n❌ NO ORDERS IN STORAGE', 'error');
+                log('Click "Create Test Order" to add some orders.', 'warning');
+                return;
+            }
+            
+            orders.forEach((order, index) => {
+                log(`\n--- ORDER ${index + 1} ---`, 'success');
+                log(`ID: ${order.id}`);
+                log(`Order Number: ${order.order_number || 'N/A'}`);
+                log(`Product: ${order.product_name}`);
+                log(`Buyer: ${order.buyer_email}`);
+                log(`Seller: ${order.seller_email}`);
+                log(`Status: ${order.status}`);
+                log(`Amount: ${order.amount} ETH`);
+                log(`Created: ${new Date(order.created_at).toLocaleString()}`);
+            });
+            
+            log('\n' + '='.repeat(60), 'info');
+        }
+
+        function viewProducts() {
+            clear();
+            const products = JSON.parse(localStorage.getItem('w3mart_seller_products') || '[]');
+            
+            log('='.repeat(60), 'info');
+            log(`ALL PRODUCTS (${products.length})`, 'info');
+            log('='.repeat(60), 'info');
+            
+            if (products.length === 0) {
+                log('\n❌ NO PRODUCTS IN STORAGE', 'error');
+                log('Products are auto-initialized when you visit the inventory page.', 'info');
+                return;
+            }
+            
+            // Group by seller
+            const bySeller = {};
+            products.forEach(p => {
+                const seller = p.seller_email || 'Unknown';
+                if (!bySeller[seller]) bySeller[seller] = [];
+                bySeller[seller].push(p);
+            });
+            
+            Object.keys(bySeller).forEach(seller => {
+                log(`\n${seller}: ${bySeller[seller].length} products`, 'success');
+            });
+            
+            log('\n' + '='.repeat(60), 'info');
+        }
+
+        function createTestOrder(buyerEmail) {
+            clear();
+            log('Creating test order...', 'info');
+            
+            const order = {
+                id: 'order-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+                order_number: 'ORD-' + new Date().toISOString().slice(0,10).replace(/-/g, '') + '-' + Math.floor(Math.random() * 100000).toString().padStart(5, '0'),
+                product_id: 'test-prod-' + Date.now(),
+                product_name: 'Test Product ' + Math.floor(Math.random() * 100),
+                product_description: 'This is a test product for debugging',
+                product_category: 'Electronics',
+                product_image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500',
+                quantity: 1,
+                amount: '0.05',
+                total_amount: '0.05',
+                status: 'pending',
+                payment_status: 'pending',
+                buyer_id: null,
+                buyer_email: buyerEmail,
+                buyer_name: buyerEmail.split('@')[0],
+                seller_id: null,
+                seller_email: 'Seller1@test.com',
+                seller_name: 'Demo Seller',
+                shipping_address: JSON.stringify({
+                    fullName: 'Test User',
+                    address: '123 Test St',
+                    city: 'Test City',
+                    state: 'Test State',
+                    pincode: '12345'
+                }),
+                payment_method: 'demo',
+                blockchain_verified: false,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            
+            const orders = JSON.parse(localStorage.getItem('w3mart_orders') || '[]');
+            orders.push(order);
+            localStorage.setItem('w3mart_orders', JSON.stringify(orders));
+            
+            log('✅ ORDER CREATED SUCCESSFULLY!', 'success');
+            log(`Order ID: ${order.id}`, 'info');
+            log(`Order Number: ${order.order_number}`, 'info');
+            log(`Buyer: ${order.buyer_email}`, 'info');
+            log(`Seller: ${order.seller_email}`, 'info');
+            log(`Product: ${order.product_name}`, 'info');
+            log(`\nTotal orders in storage: ${orders.length}`, 'success');
+            log('\n✅ Now refresh the "My Orders" page to see this order!', 'success');
+        }
+
+        function createMultipleOrders() {
+            clear();
+            log('Creating 5 test orders...', 'info');
+            
+            const buyers = ['buyer1@test.com', 'buyer2@test.com'];
+            const products = ['iPhone 15', 'Samsung Galaxy', 'MacBook Pro', 'iPad Air', 'AirPods Pro'];
+            
+            for (let i = 0; i < 5; i++) {
+                const order = {
+                    id: 'order-' + Date.now() + '-' + i,
+                    order_number: 'ORD-' + new Date().toISOString().slice(0,10).replace(/-/g, '') + '-' + (10000 + i),
+                    product_id: 'prod-' + i,
+                    product_name: products[i],
+                    product_description: 'Test product ' + i,
+                    product_category: 'Electronics',
+                    product_image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500',
+                    quantity: 1,
+                    amount: (0.05 + i * 0.01).toFixed(4),
+                    total_amount: (0.05 + i * 0.01).toFixed(4),
+                    status: ['pending', 'accepted', 'shipped'][i % 3],
+                    payment_status: 'pending',
+                    buyer_email: buyers[i % 2],
+                    buyer_name: buyers[i % 2].split('@')[0],
+                    seller_email: 'Seller1@test.com',
+                    seller_name: 'Demo Seller',
+                    shipping_address: JSON.stringify({ address: 'Test Address' }),
+                    payment_method: 'demo',
+                    created_at: new Date(Date.now() - i * 3600000).toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+                
+                const orders = JSON.parse(localStorage.getItem('w3mart_orders') || '[]');
+                orders.push(order);
+                localStorage.setItem('w3mart_orders', JSON.stringify(orders));
+                
+                log(`✅ Created order ${i + 1}: ${order.product_name}`, 'success');
+            }
+            
+            const totalOrders = JSON.parse(localStorage.getItem('w3mart_orders') || '[]').length;
+            log(`\n✅ DONE! Total orders: ${totalOrders}`, 'success');
+            log('Refresh "My Orders" page to see them!', 'info');
+        }
+
+        function getBuyerOrders(email) {
+            clear();
+            const allOrders = JSON.parse(localStorage.getItem('w3mart_orders') || '[]');
+            const emailLower = email.toLowerCase();
+            
+            const buyerOrders = allOrders.filter(order => {
+                const orderEmailLower = order.buyer_email?.toLowerCase();
+                return orderEmailLower === emailLower;
+            });
+            
+            log('='.repeat(60), 'info');
+            log(`BUYER ORDERS FOR: ${email}`, 'info');
+            log('='.repeat(60), 'info');
+            log(`\nTotal orders in storage: ${allOrders.length}`, 'info');
+            log(`Orders for this buyer: ${buyerOrders.length}`, buyerOrders.length > 0 ? 'success' : 'error');
+            
+            if (buyerOrders.length === 0) {
+                log('\n❌ NO ORDERS FOUND FOR THIS BUYER', 'error');
+                log('This is why "My Orders" page is empty!', 'error');
+                log('\nPossible reasons:', 'warning');
+                log('1. No orders have been placed yet', 'warning');
+                log('2. Orders were placed with different email', 'warning');
+                log('3. localStorage was cleared', 'warning');
+                log('\nSolution: Click "Create Test Order" above', 'info');
+            } else {
+                buyerOrders.forEach((order, index) => {
+                    log(`\n--- ORDER ${index + 1} ---`, 'success');
+                    log(`Product: ${order.product_name}`);
+                    log(`Status: ${order.status}`);
+                    log(`Amount: ${order.amount} ETH`);
+                    log(`Date: ${new Date(order.created_at).toLocaleString()}`);
+                });
+            }
+            
+            log('\n' + '='.repeat(60), 'info');
+        }
+
+        function getSellerOrders(email) {
+            clear();
+            const allOrders = JSON.parse(localStorage.getItem('w3mart_orders') || '[]');
+            const emailLower = email.toLowerCase();
+            
+            const sellerOrders = allOrders.filter(order => {
+                const orderEmailLower = order.seller_email?.toLowerCase();
+                return orderEmailLower === emailLower;
+            });
+            
+            log('='.repeat(60), 'info');
+            log(`SELLER ORDERS FOR: ${email}`, 'info');
+            log('='.repeat(60), 'info');
+            log(`\nTotal orders in storage: ${allOrders.length}`, 'info');
+            log(`Orders for this seller: ${sellerOrders.length}`, sellerOrders.length > 0 ? 'success' : 'error');
+            
+            if (sellerOrders.length === 0) {
+                log('\n❌ NO ORDERS FOUND FOR THIS SELLER', 'error');
+                log('\nChecking all seller emails in orders:', 'info');
+                const sellerEmails = [...new Set(allOrders.map(o => o.seller_email))];
+                sellerEmails.forEach(e => log(`  - ${e}`, 'info'));
+            } else {
+                sellerOrders.forEach((order, index) => {
+                    log(`\n--- ORDER ${index + 1} ---`, 'success');
+                    log(`Product: ${order.product_name}`);
+                    log(`Buyer: ${order.buyer_email}`);
+                    log(`Status: ${order.status}`);
+                    log(`Amount: ${order.amount} ETH`);
+                });
+            }
+            
+            log('\n' + '='.repeat(60), 'info');
+        }
+
+        function fixOrderFormat() {
+            clear();
+            log('Fixing order format...', 'info');
+            
+            const orders = JSON.parse(localStorage.getItem('w3mart_orders') || '[]');
+            
+            if (orders.length === 0) {
+                log('❌ No orders to fix', 'error');
+                return;
+            }
+            
+            const fixed = orders.map(order => ({
+                ...order,
+                id: order.id || 'order-' + Date.now(),
+                order_number: order.order_number || 'ORD-' + Date.now(),
+                buyer_email: order.buyer_email || 'buyer1@test.com',
+                seller_email: order.seller_email || 'Seller1@test.com',
+                status: order.status || 'pending',
+                created_at: order.created_at || new Date().toISOString(),
+                updated_at: order.updated_at || new Date().toISOString()
+            }));
+            
+            localStorage.setItem('w3mart_orders', JSON.stringify(fixed));
+            log(`✅ Fixed ${fixed.length} orders`, 'success');
+        }
+
+        function clearAllOrders() {
+            if (confirm('⚠️  Clear ALL orders? This cannot be undone!')) {
+                localStorage.removeItem('w3mart_orders');
+                clear();
+                log('✅ All orders cleared!', 'success');
+                log('Storage is now empty.', 'info');
+            }
+        }
+
+        function initializeDemoData() {
+            clear();
+            log('Initializing demo data...', 'info');
+            
+            // Create 3 test orders
+            createTestOrder('buyer1@test.com');
+            setTimeout(() => createTestOrder('buyer1@test.com'), 100);
+            setTimeout(() => createTestOrder('buyer2@test.com'), 200);
+            
+            log('\n✅ Demo data initialized!', 'success');
+            log('Refresh the app to see changes.', 'info');
+        }
+
+        // Auto-check on load
+        window.onload = () => {
+            checkStorage();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+# Netlify Configuration for BlockShop Marketplace
+
+[build]
+  # Build command
+  command = "cd frontend && npm install && npm run build"
+  
+  # Directory with the build output
+  publish = "frontend/build"
+  
+  # Base directory for the build
+  base = "/"
+
+[build.environment]
+  # Node version
+  NODE_VERSION = "18"
+  
+  # React environment
+  REACT_APP_DEMO_MODE = "true"
+
+# Redirect rules for React Router
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cache static assets
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache images
+[[headers]]
+  for = "*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
